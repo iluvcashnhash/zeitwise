@@ -1,227 +1,242 @@
 # ZeitWise
 
-**ZeitWise** is a multimodal AI-driven app that turns “doomscrolling” into **insight and humor**. In a time of information overload, it lets users engage in interactive dialogue with AI “**sages**” (philosophers, thinkers, and witty personas) to put today’s news into perspective.  The app combines text, voice (TTS), and images: news headlines are reframed with historical parallels and witty commentary, and chats with personas can generate meme-worthy images for emphasis.  In short, ZeitWise aims to make sense of the world’s noise – by finding history’s parallels, extracting wisdom, and even sharing a laugh – all in one place.
+**ZeitWise** is a multimodal AI-powered application that turns endless doomscrolling into **actionable insights and humor**. In an era of information overload, it lets users hold a **two-way conversation** with virtual “sages” (philosophers, thinkers, and witty personalities) for a fresh perspective on the news. The app combines text, voice (TTS), and images: news headlines come with historical parallels and witty commentary, while chats with personas can spawn meme images to amplify the effect. In short, ZeitWise aims to tame the noise—finding echoes in history, extracting wisdom, and even sparking a smile—all in a single app.
 
-The MVP focus is on the “core wow”: **text chat + meme image + voice**.  Users can chat one-on-one with a small set of philosopher avatars (e.g. Socrates, Diogenes, a snarky Marx) via text and hear them speak (silero TTS).  Separately, the **“Doomscroll Detox”** feed (aka **History Lens**) presents a carousel of trending news where each headline is paired with: (1) a historical parallel, (2) an AI analysis, and (3) a humorous meme or remark.  (For example: *“This crisis echoes the 1637 Tulip Mania.”*)  The result is a scrolling feed that turns panic into perspective and even amusement.  These are delivered in a visually rich, swipeable format to engage users and encourage sharing.
+**MVP focus:** the “wow factor” of text chat + meme image + voice. Users can chat one-on-one with several philosophical avatars (e.g., Socrates, Diogenes, or a sarcastic Marx) via text and hear their spoken replies (Silero TTS). Separately, the **“Doomscroll Detox” feed** (also called the “Historical Prism”) is a carousel of current news in which every headline is paired with (1) a historical parallel, (2) an AI analysis, and (3) a humorous meme or quip. Example: “This crisis echoes the Tulip Mania of 1637.” The result is a feed that turns panic into perspective—sometimes even laughter—presented in a visually rich format that entices users to share.
 
 ## Core Goals
 
-* **Engage and Enlighten:** Empower Gen Z and Millennial users (18–35) with intellectual depth in a snackable format. Combine *education, entertainment,* and *stress relief* so every news alert becomes a mini-lesson or joke.
+* **Engagement & enlightenment:** Deliver intellectually rich content to Gen Z and millennials (18–35) in a convenient format—blending *education*, *entertainment*, and *stress relief* so every news item becomes a mini-lesson or joke.
+* **Ship the MVP:** Release an MVP within 12 weeks focused on the core experience: Sage Chat and Doomscroll Detox. Skip heavyweight features for now (no live video debates or full persona marketplace) and optimize speed and stability.
+* **Viral, shareable content:** Build features that spark viral growth—memes, witty replies, short videos. Personas must feel authentic and “spicy” (edgy answers come from the *wild* Grok model) yet be fact-checked by GPT-4.
+* **Scalable platform:** Lay the foundation for future capabilities—multiple languages, more personas, gamification, and monetization. The MVP teases a *Persona Marketplace* (static screen) and a simple Free/Pro/Guru subscription model.
+* **Data-driven iteration:** Instrument the app with analytics (PostHog) and A/B testing to refine the product based on real usage data.
 
-* **MVP Delivery:** Ship the MVP in 12 weeks with a tight focus on the core experience: Sage Chat and Doomscroll Detox.  This means limiting heavy features (no live video debates or full-persona marketplace yet) and optimizing for speed and stability.
+## 12-Week Development Roadmap
 
-* **Viral, Shareable Content:** Build features that drive virality – memes, witty banter, and shareable video clips.  The personas should feel authentic and unfiltered (using a “wild” model codenamed *Grok* for edgy answers) but fact-checked by GPT-4 for accuracy.
+1. **Weeks 1–3 – Foundations.**
 
-* **Scalable Platform:** Establish a foundation for future features: multilingual support, more personas, gamification, and monetization.  For MVP, we provide a teaser **Persona Marketplace** (static store UI) and a simple free/pro/guru monetization model.
+   * Set up repo, initial mobile & web scaffolds, and backend.
+   * Initialize Supabase (Auth, Postgres, Storage) and CI/CD pipelines.
+   * Create an *MVP Telegram bot*: users forward a news item to `@ZeitWiseBot`, which saves it to `tg_posts_raw`. Add a cron reminder (push when ≥ 5 new posts) and basic notifications.
 
-* **Data-Driven Learning:** Instrument the app with analytics (PostHog) and A/B testing to iterate quickly based on real user behavior.
+2. **Weeks 4–6 – Core Engine.**
 
-In summary, the product vision is to reframe anxiety as wisdom – “history, analysis, and memes in one feed” – while laying the groundwork for a smart, fun “intellectual community” over time.
+   * Build the AI pipeline. Prototype semantic search (“News Déjà Vu”) that finds historical events matching headlines.
+   * Construct an *LLM router*: send requests to OpenAI GPT-4 or xAI Grok based on profanity score.
+   * Start the meme-generation pipeline (GPT prompt → Stable Diffusion → post-processing).
+   * By week 6, a background worker should ingest posts, find historical parallels, generate analysis & memes, and save them to `detox_items`.
 
-## Development Roadmap (12 Weeks)
+3. **Weeks 7–9 – Interfaces.**
 
-We plan a 3-month MVP cycle with the following milestones:
+   * Polish the UX. Finalize Detox worker (caching & vector DB integration).
+   * **Detox Feed UI:** React Native carousel showing 4-slide Detox cards (headline, history, analysis, meme).
+   * **Sage Chat UI:** chat with voice replies (TTS). Integrate persona voices and allow personal chats with each sage.
+   * Prepare *Persona Store* screen (static “coming soon” teaser).
 
-1. **Weeks 1–3: Foundation.** Set up the repo, mobile/web scaffolds, and backend framework.  Initialize Supabase (Auth, Postgres, Storage) and CI/CD pipelines.  Build the **Telegram Bot MVP**: users can forward a news post to our `@ZeitWiseBot`, which stores it in `tg_posts_raw`.  Implement a reminder cron (e.g. push if ≥5 pending posts) and basic notifications.
+4. **Weeks 10–11 – Polish & Web.**
 
-2. **Weeks 4–6: Core Engine.** Develop the AI pipeline.  Create a **semantic search** proof-of-concept (“News Déjà Vu”) that finds related historical events for a given headline.  Build the **LLM Router**: route requests to OpenAI GPT-4 or to xAI Grok based on profanity score.  Begin the **meme generation pipeline** (GPT prompt → Stable Diffusion → post-processing).  By week 6, we should have an end-to-end backend worker that ingests posts, finds historical parallels, generates analysis and memes, and writes to `detox_items`.
+   * Sync web (Next.js via Solito) with mobile.
+   * Add analytics (PostHog) and error reporting (Sentry).
+   * QA, security audit, bug-fixes.
+   * Integrate payments (Stripe) for Free/Pro/Guru plans (stubbed).
+   * Prepare marketing assets, screenshots, and store listings for TestFlight/Play Store.
 
-3. **Weeks 7–9: Feature UIs.** Build the user-facing features.  Finalize the detox worker (cache results, integrate with vector DB).  **Detox Feed UI:** Develop a React Native carousel to display each 4-slide “detox card” (headline, history, analysis, meme).  **Sage Chat UI:** Implement the chat interface with voice (TTS) support.  Integrate persona audio/avatars and allow one-on-one chat with each AI Sage (text + speech).  Also design a **Persona Store** screen (initially static with locked items and “coming soon” placeholders).
+5. **Week 12 – Beta Release.**
 
-4. **Weeks 10–11: Polish & Web.** Sync the web experience (Next.js via Solito) with mobile features.  Set up analytics (PostHog) and crash reporting (Sentry).  Conduct QA, security audit, and fix bugs.  Ensure payment/IAP (Stripe) integration stubs for Free/Pro/Guru plans.  Prepare marketing copy, screenshots, and TestFlight/Play store assets.
+   * Ship closed betas on TestFlight and Google Play.
+   * Launch Telegram bot for user news collection.
+   * Gather feedback, watch metrics, plan next-stage features.
 
-5. **Week 12: Beta Launch.** Release the beta on TestFlight and Google Play (closed beta).  Soft-launch the Telegram bot to seed user content.  Gather feedback, monitor usage, and plan next-phase features.
+Key milestones: **Detox Feed UI (week 8)**, **Sage Chat UI (week 9)**, **beta release (week 12)**. Post-MVP features: live multi-avatar debates, user-generated personas, full marketplace, extended localization.
 
-Throughout, key milestones are: **Detox Feed UI (week 8)**, **Sage Chat UI (week 9)**, and **Beta Release (week 12)**.  Features deferred beyond MVP include live multi-avatar debates, user-generated persona training, full persona marketplace, advanced gamification, and extended localization.
+## Tech Stack
 
-## Technical Stack
+* **Frontend (mobile & web):** Expo/React Native (mobile) + Next.js with `react-native-web` via [Solito](https://solito.dev). Cross-platform UI styling with Tamagui. Voice via Silero TTS.
+* **Backend API:** Python + FastAPI (Docker). Handles user requests, auth (JWT), and proxies to AI services. Background tasks (chat processing, Detox generation) run via Redis queue.
+* **Edge Functions (Supabase):** Supabase Edge Functions (Deno) for lightweight tasks: cron reminders/notifications, simple DB ops, and webhooks (e.g., from Telegram).
 
-* **Frontend (Mobile & Web):** Expo/React Native (mobile) and Next.js with `react-native-web` (web) using [Solito](https://solito.dev) for shared code.  We use Tamagui for cross-platform UI styling.  Voice features use Silero TTS on-device or via API.
+### Databases
 
-* **Backend API:** Python + FastAPI (Dockerized) serves as the API gateway.  It handles user requests, authentication (JWT), and proxies to AI services.  A Redis queue backs async tasks (chat processing, detox generation).
+* *Relational:* Supabase Postgres for user data (accounts, settings, chat logs).
+* *Storage:* Supabase Storage for media (avatars, generated memes, videos).
+* *Vector search:* Qdrant for semantic search. Indexes news & historical data for the “Historical Correlator.” (Early MVP used Pinecone sandbox; now Qdrant.)
 
-* **Edge Functions:** Supabase Edge Functions (Deno) run lightweight jobs: scheduled tasks (cron/email/push reminders), simple DB operations, and webhooks (e.g. Telegram callback).
+### AI/ML Models
 
-* **Databases:**
+* **LLM:** OpenAI GPT-3.5/4 for general tasks and xAI Grok for edgier replies. Requests with profanity > 0.7 go to Grok.
+* **Computer vision:** Stable Diffusion 1.5 (NVIDIA T4) for meme images.
+* **Speech:** Silero TTS for voice synthesis (multi-language).
+* **NLP:** VADER for sentiment analysis.
+* **Custom:** Future fine-tuned lightweight LLMs for offline use.
 
-  * *Relational:* Supabase Postgres for user data (users, settings, chat logs).
-  * *Storage:* Supabase Storage for media (avatars, generated memes, videos).
-  * *Vector Search:* Qdrant (self-hosted) for semantic retrieval. We index news & history corpora to power the “Historical Correlator” search. (MVP used Pinecone sandbox, now Qdrant.)
+### Integrations / APIs
 
-* **AI/ML Models:**
+* Social/news sources: X/Twitter (OAuth), Telegram channels, RSS. (MVP polls sources every 6 hours.)
+* **Telegram bot:** `@ZeitWiseBot` (Python) accepts forwarded posts.
+* **Payments:** Stripe SDK for in-app subscriptions (Free/Pro/Guru).
 
-  * *LLM:* OpenAI GPT-3.5/4 for general Q\&A, and xAI Grok for edgy/unfiltered responses.  A profanity threshold (e.g. >0.7) switches input to Grok.
-  * *Vision:* Stable Diffusion 1.5 (on NVIDIA T4 GPU) generates meme images.
-  * *Speech:* Silero TTS for voice output (multi-language capable).
-  * *NLP:* VADER sentiment analysis for content tone.
-  * *Custom:* In the long run we may finetune smaller LLMs (on-device) to enable offline mode.
+### Analytics & Monitoring
 
-* **Integrations/APIs:**
+* PostHog for DAU & funnel metrics.
+* Sentry for error reporting.
 
-  * Social/news sources: Twitter/X (OAuth), Telegram channel feeds, RSS parsing.  (MVP polls user-linked sources every 6 h.)
-  * **Telegram Bot:** A @ZeitWiseBot (Python) ingests forwarded posts.
-  * **Payments:** Stripe SDK for in-app subscriptions (Free/Pro/Guru tiers).
+### Hosting
 
-* **Analytics & Monitoring:** PostHog (cloud) to track DAU, feature usage, funnel metrics. Sentry for crash/error reporting. These tools inform product decisions and scaling needs.
+* API & background services run in Docker (Node/Python) on a GPU VM.
+* Mobile builds via Expo EAS.
+* Web app hosted on Vercel.
 
-* **Hosting:**
+**Quick tech recap**
 
-  * API & worker run on Docker (Node/Python) on a VM with GPU.
-  * Mobile apps built via Expo EAS and distributed to app stores.
-  * Web app deployed on Vercel.
-
-Key tech components summary:
-
-```markdown
-- **Mobile/Web:** React Native (Expo) + Next.js/Solito:contentReference[oaicite:63]{index=63}  
-- **UI Library:** Tamagui (cross-platform)  
-- **API:** FastAPI (Python, Docker):contentReference[oaicite:64]{index=64}  
-- **Edge/Serverless:** Supabase Edge Functions (Deno):contentReference[oaicite:65]{index=65}  
-- **DB:** Supabase Postgres & Storage; Qdrant vector DB:contentReference[oaicite:66]{index=66}  
-- **AI Models:** OpenAI GPT-4, xAI Grok, Stable Diffusion 1.5, Silero TTS:contentReference[oaicite:67]{index=67}:contentReference[oaicite:68]{index=68}  
-- **Search:** Qdrant semantic search (“News Déjà Vu”):contentReference[oaicite:69]{index=69}  
-- **Auth:** Supabase Auth (email, no social logins), JWT tokens:contentReference[oaicite:70]{index=70}  
-- **Payments:** Stripe In-App Purchases (Free/Pro/Guru):contentReference[oaicite:71]{index=71}  
-- **CI/CD:** GitHub Actions, Expo EAS, Vercel, Supabase migrations:contentReference[oaicite:72]{index=72}  
-- **Analytics:** PostHog, plus custom dashboards for funnels/retention.  
-```
+* **Mobile/Web:** React Native (Expo) + Next.js (Solito)
+* **UI library:** Tamagui
+* **API:** FastAPI (Python, Docker)
+* **Edge Functions:** Supabase Edge (Deno)
+* **Databases:** Supabase Postgres & Storage; Qdrant
+* **AI models:** OpenAI GPT-4, xAI Grok, Stable Diffusion 1.5, Silero TTS
+* **Search:** Semantic search on Qdrant (“News Déjà Vu”)
+* **Auth:** Supabase Auth (email, JWT)
+* **Payments:** Stripe (Free/Pro/Guru)
+* **CI/CD:** GitHub Actions, Expo EAS, Vercel, Supabase migrations
+* **Analytics:** PostHog dashboards for funnels/retention
 
 ## CI/CD & DevOps
 
-* **GitHub Actions:** On each push/PR the CI pipeline builds Docker images, runs backend/unit tests, and lints code (ESLint for JS/TS, pytest/flake8 for Python). Successful merges to `main` trigger deployments.
+* **GitHub Actions:** On every push/PR, the CI pipeline builds Docker images, runs backend tests, and lints code (ESLint for JS/TS, pytest/flake8 for Python). Merge to `main` triggers deploy.
+* **Mobile builds:** Expo EAS auto-builds iOS & Android on pushes to `main`; new builds upload to TestFlight & Google Play Beta.
+* **Web deploy:** Next.js auto-deploys to Vercel from `main` (preview deployments for PRs).
+* **Supabase migrations:** Managed via Supabase CLI; SQL migrations in `supabase/migrations` apply on merge.
+* **Secrets & config:** API keys (OpenAI, Stripe, Supabase, etc.) live in GitHub Secrets & Expo Secrets; each environment (dev/beta/prod) has its own.
+* **Infrastructure:** Backend services orchestrated with Docker Compose (FastAPI, Qdrant, Redis, n8n). Each service has its own container & volume. n8n runs in the shared Docker network and connects to Supabase and FastAPI APIs.
+* **Monitoring & alerts:** Sentry for runtime errors. Automated tests (unit, integration) run on schedule to catch regressions early.
 
-* **Mobile Builds:** Expo EAS is configured to automatically build iOS and Android bundles on the main branch. New builds are pushed to TestFlight and Google Play Beta channels.
+CI/CD is fully documented in `/docs/ci-cd.md`; key deploy scripts live in the repo.
 
-* **Web Deployments:** The Next.js web app is auto-deployed to Vercel from `main` (preview environments on PRs).
+## Automation Layer (n8n)
 
-* **Supabase Migrations:** Using the Supabase CLI, any database schema changes (SQL migrations) are applied on merging to `main`. We maintain a `supabase/migrations` directory under version control.
+We use [n8n](https://n8n.io)—an open-source workflow-automation platform—to orchestrate background tasks and integrations. n8n acts as an orchestration bus and ETL tool, complementing (not replacing) the FastAPI backend, and lets non-technical editors configure workflows visually. Sample n8n workflows:
 
-* **Secrets & Config:** API keys (OpenAI, Stripe, Supabase) and environment variables are stored in GitHub Secrets and Expo Secrets. Each environment (dev/beta/prod) uses appropriate configs.
+* **Telegram handler:** New messages from a Telegram channel are automatically stored in Supabase (`tg_posts_raw`) for further processing.
+* **RSS sentiment monitor:** n8n watches RSS feeds, analyzes sentiment (VADER), and inserts matching items into `detox_items`.
+* **Audio (TTS) queue:** New texts trigger TTS generation tasks; audio is saved for later playback.
+* **Daily push notifications:** On a schedule (via Supabase cron), n8n sends daily push notifications through the Push API.
+* **Meme publishing (optional):** n8n can post generated memes to a Telegram channel on schedule.
+* **Flexibility:** All automations are set up in the n8n GUI, letting editors add new sources or actions without code changes.
 
-* **Infrastructure:** We manage backend services via Docker Compose (FastAPI, Qdrant, Redis). GPU instances (NVIDIA T4) are autoscaled off for cost control and only powered on during key tasks.
+Important: n8n does **not** replace the core FastAPI backend. FastAPI still handles client requests and business logic, while n8n tackles data-source integrations, background orchestration, and ETL.
 
-* **Monitoring & Alerts:** Post-launch, we integrate Sentry for error alerts. Automated tests (unit, integration) run on schedule for early detection of regressions.
+## Global Constants & Variables
 
-All CI/CD and DevOps pipelines are documented in `/docs/ci-cd.md` for the team, and key deployment scripts are versioned alongside the repo.
-
-## Global Constants and Variables
-
-Some representative global constants (to be placed in a config file or environment):
+Examples of global settings (config or `.env`):
 
 ```js
-// Maximum free detox usage per user per day (see MVP limits):contentReference[oaicite:76]{index=76}
+// Max free Detox cards per user per day (MVP cap)
 const MAX_FREE_DETOXES_PER_DAY = 5;
 
 // Default app language (ISO code)
 const DEFAULT_LANG = 'en';
 
-// Threshold above which queries use xAI Grok (unfiltered model)
+// Profanity threshold above which requests switch to xAI Grok
 const GROK_PROFANITY_THRESHOLD = 0.75;
 
-// Text-to-Speech voice mapping by language
+// Mapping of TTS voices to languages
 const TTS_VOICE_MAP = {
   en: 'en-US-Neural2-J',
   ru: 'ru-RU-Wavenet-A',
   // add more as needed...
 };
 
-// Default temperature for GPT-4 (fine-tuned per persona later)
+// Default temperature for GPT-4 (tuned per persona later)
 const OPENAI_TEMPERATURE = 0.7;
 
-// Dimensions for generated meme images (per MVP spec):contentReference[oaicite:77]{index=77}
+// Meme image dimensions (per MVP requirements)
 const MEME_IMAGE_DIMENSIONS = { width: 512, height: 512 };
 ```
 
-Other examples: rate limits (e.g. `MAX_CHAT_MESSAGES`), cache TTLs for Semantic Search, feature flags (e.g. `ENABLE_PERSONA_MARKETPLACE = false` initially), etc. Values marked with MVP references should match the tech spec above.
-
 ## Key Modules
 
-* **SageChat:** An interactive chat engine where users pick an AI persona (philosophical mask) and have a conversation.  Each persona (e.g. *Socrates the Gadfly, Karl Marx the Smoker*) has a distinct voice and attitude. Chats support text input and audio output via TTS. (Multi-person “summon a meeting” panels are planned later.)
+* **Sage Chat:** Interactive chat engine where a user picks an AI persona (philosopher mask) and converses. Each persona (e.g., *“Provocateur Socrates”* or *“Karl Marx the Smoker”*) has its own voice and character. Supports text input and voice output (TTS). (Future: multi-persona group chats.)
+* **Doomscroll Detox (Historical Prism):** The flagship feature. Takes trending news from user feeds and generates a 4-slide card: *Headline → Historical Parallel → Sage Analysis → Meme*. The “Historical Correlator” finds analogous past events via Qdrant; an LLM crafts explanatory text; the MemeGen pipeline makes a humorous image. Displayed as a carousel or short video.
+* **Persona Marketplace:** Store for personas. MVP shows a static teaser (many personas locked; subscription upsell). Later, users can buy persona packs or add custom personas via IAP.
+* **MemeGen:** Image-generation pipeline. Given text/context, GPT drafts a creative prompt, Stable Diffusion (SDXL) renders an image, and NSFW filters run on GPU. URL saved in `detox_item` for feed display.
+* **Historical Correlator:** Semantic search engine over historical events/news (“News Déjà Vu”). Finds past analogues for headlines using Qdrant. Part of the Detox worker.
+* **Telegram bot:** `@ZeitWiseBot` lets users forward alarming news from Telegram. Saves incoming messages to Supabase (`tg_posts_raw`); backend worker processes them for Detox. Also handles reminders and feedback.
+* **Gamification Engine:** (planned) Tracks user streaks, awards badges (e.g., “Little Socrates” for 7 days), and may introduce leaderboards. Initial implementation is a simple counter and six badges; richer gamification comes later.
 
-* **Doomscroll Detox (History Lens):** The signature news detox feature. It fetches headlines from user feeds or trending sources and produces a 4-part card: *Headline → Historical Parallel → Sage Analysis → Meme*. This module uses the **Historical Correlator** to find relevant events from our history corpus, then an LLM to write context and a meme image to lighten the mood. The result is presented as an interactive carousel or short video.
-
-* **Persona Marketplace:** A store UI where users can see available and “coming soon” AI personas. In the MVP this is a **static teaser** (locked personas, subscription prompts). Eventually, it will allow purchasing persona packs or custom personas via IAP and user contributions.
-
-* **MemeGen:** The image generation pipeline. Given a text prompt or conversation context, this module uses a GPT-based prompt followed by Stable Diffusion (SDXL) to create a meme image. We support a built-in template library (\~50 popular meme formats) and ensure safe generation (NSFW filter) on the GPU. The `meme_url` is then attached to the Detox item for display.
-
-* **Historical Correlator:** A semantic search engine over a database of historical events and news (the “News Déjà Vu” database). When given a headline, it queries Qdrant to find analogous past events. This provides the “Historical Parallel” used in the Detox feed. It runs as part of the Detox worker pipeline.
-
-* **Telegram Bot:** The `@ZeitWiseBot` lets users forward disturbing news posts directly from Telegram. It stores incoming messages in Supabase (`tg_posts_raw`). The backend worker then processes these posts for detoxification. The bot also handles user reminders and feedback.
-
-* **Gamification Engine:** (Planned for future iterations) Tracks user streaks, awards badges (e.g. “Little Socrates” for 7-day streak), and may include leaderboards or levels.  Initially we provide a simple streak counter and 6 achievement badges; advanced features come after launch.
-
-Each module is implemented as a separate service or component (e.g. Detox pipeline worker, chat service, search indexer) to allow independent scaling.
+Each module is its own service or component (e.g., Detox worker, SageChat service, history indexer) for independent scaling.
 
 ## Local Development & Build
 
 To run ZeitWise locally for development:
 
-1. **Prerequisites:**
+1. **Requirements**
 
-   * Install Node.js (16+), Yarn, and Expo CLI.
-   * Install [Supabase CLI](https://supabase.com/docs/guides/cli) for local DB/migrations.
-   * Install Docker (for backend & vector DB).
+   * Install Node.js 16+, Yarn, and Expo CLI.
+   * Install the [Supabase CLI](https://supabase.com/docs/guides/cli) for local DB & migrations.
+   * Install Docker (backend & Qdrant).
 
-2. **Clone the repo:**
+2. **Clone the repo**
 
    ```bash
    git clone https://github.com/iluvcashnhash/ZeitWise.git
    cd ZeitWise
    ```
 
-3. **Install Dependencies:**
+3. **Install dependencies**
 
    ```bash
    yarn install
    ```
 
-4. **Configure Environment:**
+4. **Configure environment**
 
    * Copy `.env.example` to `.env` and fill in keys (SUPABASE\_URL/KEY, OPENAI\_API\_KEY, TELEGRAM\_BOT\_TOKEN, STRIPE\_KEY, etc.).
-   * Set `EXPO_DEV_CLIENT=1` to use the dev client for TTS if needed.
+   * To enable the Expo dev client (e.g., for TTS testing), set `EXPO_DEV_CLIENT=1`.
 
-5. **Initialize Supabase:**
+5. **Initialize Supabase**
 
    ```bash
-   supabase start   # starts local Postgres & Studio
-   supabase db reset   # create database from migrations
+   supabase start      # launches local Postgres & Studio
+   supabase db reset   # applies migrations
    ```
 
-6. **Start Backend & Services:**
+6. **Start backend & services**
 
    ```bash
    docker-compose up -d
-   # This starts the FastAPI backend, Redis, and Qdrant containers.
    ```
 
-7. **Run Mobile App:**
+   This spins up FastAPI, Redis, Qdrant **and n8n** containers.
+
+7. **Run the mobile app**
 
    ```bash
    cd mobile
    expo start
    ```
 
-   Then open the app in the Expo Go client or simulator. The app will connect to the local API (set `API_URL` in `.env`).
+   Open in Expo Go or an emulator. It connects to the local API (set `API_URL` in `.env`).
 
-8. **Run Web App:**
+8. **Run the web app**
 
    ```bash
    cd web
    yarn dev
    ```
 
-   (Or `yarn dev:web` from root, if configured.) This serves the Next.js app locally.
+   (Or `yarn dev:web` from root if configured.) This serves Next.js locally.
 
-9. **Test Integrations:**
+9. **Integration test**
 
-   * Use the Telegram bot: `/forward` a message to `@ZeitWiseBot` and watch it appear in Supabase (`tg_posts_raw`).
-   * Use the Detox UI to enter a headline or forward from Telegram to see the historical context and meme.
+   * Forward a message with `/forward` to `@ZeitWiseBot` and verify it appears in Supabase (`tg_posts_raw`).
+   * In the Detox interface, input a headline or forwarded post and check the historical context & meme display.
 
-10. **Build/Test:**
+10. **Build & test**
 
-    * Run tests with `yarn test` (backend) and `yarn lint` (frontend).
-    * Use `yarn eas build` for production mobile builds as needed.
+    * Run backend tests `yarn test` and linters `yarn lint`.
+    * For production mobile builds, use `yarn eas build`.
 
-See `CONTRIBUTING.md` for coding conventions and more details. The README in each subfolder (`/mobile`, `/web`, `/api`) contains further instructions for those components.
+See `CONTRIBUTING.md` for code conventions. Each sub-project (`/mobile`, `/web`, `/api`) has its own README.
 
-**This README should evolve with the project**. Update it whenever adding new modules, changing architecture, or adjusting milestones. It’s intended as a living document for the ZeitWise team’s reference.
+**This README will evolve with the project.** Update it whenever new modules, architectural changes, or plans are added. It serves as a living reference for the ZeitWise team.
