@@ -165,7 +165,7 @@ To run ZeitWise locally for development:
 2. **Clone the repo:**
 
    ```bash
-   git clone https://github.com/our-org/ZeitWise.git
+   git clone https://github.com/iluvcashnhash/ZeitWise.git
    cd ZeitWise
    ```
 
