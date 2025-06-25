@@ -1,4 +1,4 @@
-# ZiteWise MVP – Core Personas
+# ZeitWise MVP – Core Personas
 
 > A quick reference sheet for product, design, and engineering. Update freely as voices or guard‑rails evolve.
 
