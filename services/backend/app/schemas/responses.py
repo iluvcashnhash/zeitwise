@@ -69,9 +69,11 @@ class IntegrationStatus(str, Enum):
 class IntegrationResponse(BaseModel):
     """Response model for integrations."""
     id: str
+    user_id: str
     type: str
     status: IntegrationStatus
     settings: Dict[str, Any] = {}
+    enabled: bool = True
     last_synced: Optional[datetime] = None
     error: Optional[str] = None
     created_at: datetime

@@ -12,7 +12,7 @@ from .core.security import get_current_user
 from .schemas.responses import HealthCheckResponse, HealthStatus
 
 # Import routers
-from .routes import chat, detox, integrations
+from .routes import api_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -48,23 +48,36 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan,
+    openapi_url="/api/openapi.json",
+    lifespan=lifespan
 )
+
+# Include API router
+app.include_router(api_router, prefix="/api")
 
 # Set up CORS
 if settings.BACKEND_CORS_ORIGINS:
+    # Include all API routes
+    app.include_router(api_router, prefix="/api")
+
+    # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_origins=settings.BACKEND_CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-# Include routers
-app.include_router(chat.router, prefix="/api/v1/chat", tags=["chat"])
-app.include_router(detox.router, prefix="/api/v1/detox", tags=["detox"])
-app.include_router(integrations.router, prefix="/api/v1/integrations", tags=["integrations"])
+# Custom exception handler
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+# Add exception handlers
+app.add_exception_handler(HTTPException, http_exception_handler)
 
 # Health check endpoint
 @app.get("/ping", response_model=HealthCheckResponse, tags=["health"])
@@ -90,14 +103,6 @@ async def ping() -> HealthCheckResponse:
 async def healthz() -> Dict[str, str]:
     """Health check endpoint for load balancers."""
     return {"status": "ok"}
-
-# Custom exception handler
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-    )
 
 def main():
     """

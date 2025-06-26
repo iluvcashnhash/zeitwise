@@ -37,7 +37,7 @@ zeitwise/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/zeitwise.git
+   git clone https://github.com/iluvcashnhash/zeitwise.git
    cd zeitwise
    ```
 

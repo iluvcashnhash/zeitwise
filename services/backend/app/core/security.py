@@ -21,8 +21,8 @@ async def get_jwks() -> Dict[str, Any]:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(jwks_url)
-            response.raise_for_status()
-            return response.json()
+            await response.raise_for_status()
+            return await response.json()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
