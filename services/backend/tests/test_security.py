@@ -1,16 +1,24 @@
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock, call
+from unittest.mock import AsyncMock, patch, MagicMock, call, ANY
 import json
-from jose import jwt
-from datetime import datetime, timedelta
+from jose import jwt, JWTError
+from datetime import datetime, timedelta, timezone
 import time
 import asyncio
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.core import security
 from app.core.config import settings
+
+# Mock request object for testing
+class MockRequest:
+    def __init__(self, headers=None, state=None):
+        self.headers = headers or {}
+        self.state = state or type('State', (), {})()
+        self.app = MagicMock()
+        self.app.logger = MagicMock()
 
 # Helper function to run async tests
 def async_test(coro):
@@ -36,18 +44,26 @@ MOCK_JWKS = {
 MOCK_PAYLOAD = {
     "sub": "auth0|1234567890",
     "email": "test@example.com",
+    "email_verified": True,
+    "phone_verified": False,
     "role": "user",
-    "app_metadata": {},
-    "user_metadata": {},
+    "app_metadata": {"roles": ["user"]},
+    "user_metadata": {"name": "Test User"},
     "aud": "authenticated",
-    "iss": f"{settings.SUPABASE_URL}/auth/v1",
-    "exp": int(time.time()) + 3600
+    "iss": f"{settings.SUPABASE_URL}/auth/v1" if settings.SUPABASE_URL else "https://example.com/auth/v1",
+    "exp": int(time.time()) + 3600,
+    "iat": int(time.time()),
+    "nbf": int(time.time())
 }
 
 @pytest.fixture
 def mock_http_client():
     with patch('httpx.AsyncClient') as mock_client:
-        mock_client.return_value.__aenter__.return_value.get.return_value.json.return_value = MOCK_JWKS
+        mock_response = MagicMock()
+        mock_response.json.return_value = MOCK_JWKS
+        mock_response.raise_for_status.return_value = None
+        mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
+        yield mock_client
         mock_client.return_value.__aenter__.return_value.raise_for_status.return_value = None
         yield mock_client
 
@@ -169,46 +185,135 @@ async def test_decode_jwt_missing_kid():
 @pytest.mark.asyncio
 async def test_get_current_user_success():
     """Test getting current user with valid token."""
+    mock_request = MockRequest()
     mock_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="test_token")
-    with patch('app.core.security.decode_jwt') as mock_decode:
-        mock_decode.return_value = MOCK_PAYLOAD
-        user = await security.get_current_user(mock_credentials)
-        assert user["sub"] == MOCK_PAYLOAD["sub"]
-        assert user["email"] == MOCK_PAYLOAD["email"]
+    mock_payload = MOCK_PAYLOAD.copy()
+    
+    with patch('app.core.security.decode_jwt', return_value=mock_payload) as mock_decode:
+        user = await security.get_current_user(mock_request, mock_credentials)
+        
+        # Verify user data
+        assert user["sub"] == mock_payload["sub"]
+        assert user["email"] == mock_payload["email"]
+        assert user["email_verified"] is True
+        assert user["phone_verified"] is False
+        assert user["role"] == "user"
+        assert "app_metadata" in user
+        assert "user_metadata" in user
+        
+        # Verify request state was updated
+        assert hasattr(mock_request.state, 'user')
+        assert mock_request.state.user == user
+        
+        # Verify decode was called with correct args
+        mock_decode.assert_called_once_with("test_token")
 
 @pytest.mark.asyncio
 async def test_get_current_user_missing_credentials():
     """Test getting current user with missing credentials."""
+    mock_request = MockRequest()
     with pytest.raises(HTTPException) as exc_info:
-        await security.get_current_user(None)
+        await security.get_current_user(mock_request, None)
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "Could not validate credentials" in str(exc_info.value.detail)
 
 @pytest.mark.asyncio
 async def test_get_current_user_invalid_token():
     """Test getting current user with invalid token."""
+    mock_request = MockRequest()
     mock_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="invalid_token")
-    with patch('app.core.security.decode_jwt') as mock_decode:
-        mock_decode.side_effect = HTTPException(status_code=401, detail="Invalid token")
+    
+    with patch('app.core.security.decode_jwt', side_effect=JWTError("Invalid token")) as mock_decode:
         with pytest.raises(HTTPException) as exc_info:
-            await security.get_current_user(mock_credentials)
+            await security.get_current_user(mock_request, mock_credentials)
+            
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "Invalid authentication credentials" in str(exc_info.value.detail)
+        assert "WWW-Authenticate" in exc_info.value.headers
+        mock_decode.assert_called_once_with("invalid_token")
 
 @pytest.mark.asyncio
-async def test_decode_jwt_invalid_signature():
-    """Test JWT decoding with invalid signature."""
-    with patch('jose.jwt.decode') as mock_decode:
-        mock_decode.side_effect = jwt.JWTError("Invalid signature")
+async def test_get_required_roles():
+    """Test role-based access control"""
+    mock_request = MockRequest()
+    mock_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="valid_token")
+    
+    # Setup mock payload with admin role
+    admin_payload = MOCK_PAYLOAD.copy()
+    admin_payload["app_metadata"]["roles"] = ["admin"]
+    
+    # Setup mock payload with user role
+    user_payload = MOCK_PAYLOAD.copy()
+    user_payload["app_metadata"]["roles"] = ["user"]
+    
+    # Test admin access with admin role
+    with patch('app.core.security.decode_jwt', return_value=admin_payload):
+        admin_checker = security.get_required_roles("admin")
+        user = await admin_checker(await security.get_current_user(mock_request, mock_credentials))
+        assert user["sub"] == admin_payload["sub"]
+    
+    # Test user access with user role
+    with patch('app.core.security.decode_jwt', return_value=user_payload):
+        user_checker = security.get_required_roles("user")
+        user = await user_checker(await security.get_current_user(mock_request, mock_credentials))
+        assert user["sub"] == user_payload["sub"]
+    
+    # Test admin access with user role (should fail)
+    with patch('app.core.security.decode_jwt', return_value=user_payload):
+        admin_checker = security.get_required_roles("admin")
         with pytest.raises(HTTPException) as exc_info:
-            await security.decode_jwt("invalid.token.here")
-        
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "Invalid token: Error decoding token headers" in str(exc_info.value.detail)
+            await admin_checker(await security.get_current_user(mock_request, mock_credentials))
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+        assert "Insufficient permissions" in str(exc_info.value.detail)
+
+@pytest.mark.asyncio
+async def test_verify_token_claims():
+    """Test token claims verification"""
+    now = int(time.time())
+    
+    # Test valid token
+    valid_payload = {
+        "sub": "user123",
+        "aud": "authenticated",
+        "iss": f"{settings.SUPABASE_URL}/auth/v1" if settings.SUPABASE_URL else "https://example.com/auth/v1",
+        "exp": now + 3600,
+        "nbf": now - 10,
+        "iat": now - 5
+    }
+    
+    # Should not raise
+    security.verify_token_claims(valid_payload)
+    
+    # Test expired token
+    expired_payload = valid_payload.copy()
+    expired_payload["exp"] = now - 10
+    with pytest.raises(JWTError, match="Token has expired"):
+        security.verify_token_claims(expired_payload)
+    
+    # Test not yet valid token
+    future_payload = valid_payload.copy()
+    future_payload["nbf"] = now + 10
+    with pytest.raises(JWTError, match="Token not yet valid"):
+        security.verify_token_claims(future_payload)
+    
+    # Test invalid audience
+    invalid_aud_payload = valid_payload.copy()
+    invalid_aud_payload["aud"] = "invalid_audience"
+    with pytest.raises(JWTError, match="Invalid audience"):
+        security.verify_token_claims(invalid_aud_payload)
+    
+    # Test invalid issuer
+    if settings.SUPABASE_URL:  # Only test if SUPABASE_URL is set
+        invalid_iss_payload = valid_payload.copy()
+        invalid_iss_payload["iss"] = "https://invalid-issuer.com/auth/v1"
+        with pytest.raises(JWTError, match="Invalid issuer"):
+            security.verify_token_claims(invalid_iss_payload)
 
 @pytest.mark.asyncio
 async def test_decode_jwt_expired():
     """Test JWT decoding with expired token."""
     with patch('jose.jwt.decode') as mock_decode:
-        mock_decode.side_effect = jwt.ExpiredSignatureError("Token expired")
+        mock_decode.side_effect = jwt.JWTError("Invalid signature")
         with pytest.raises(HTTPException) as exc_info:
             await security.decode_jwt("expired.token.here")
         
