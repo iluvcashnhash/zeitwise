@@ -6,7 +6,7 @@
 
 ```
 zeitwise/
-├── apps/                  # Frontend applications (Next.js, React Native)
+├── apps/                  # Frontend applications (Next.js, Flutter)
 ├── docs/                  # Documentation
 ├── infra/                 # Infrastructure as Code (Docker, Kubernetes)
 │   └── supabase/          # Supabase migrations and configuration
@@ -29,7 +29,8 @@ zeitwise/
 ### Prerequisites
 
 - Docker and Docker Compose
-- Node.js 18+ and npm
+- Flutter SDK (for mobile development)
+- Node.js 18+ and npm (for web development)
 - Python 3.10+
 - PostgreSQL 15+
 
@@ -68,10 +69,15 @@ zeitwise/
    poetry install
    poetry run uvicorn app.main:app --reload
    
-   # Frontend (Next.js)
+   # Web Frontend (Next.js)
    cd ../../apps/web
    npm install
    npm run dev
+   
+   # Mobile App (Flutter)
+   cd ../../apps/mobile
+   flutter pub get
+   flutter run
    ```
 
 ## Development Workflow
@@ -179,7 +185,7 @@ Key milestones: **Detox Feed UI (week 8)**, **Sage Chat UI (week 9)**, **beta re
 
 ## Tech Stack
 
-* **Frontend (mobile & web):** Expo/React Native (mobile) + Next.js with `react-native-web` via [Solito](https://solito.dev). Cross-platform UI styling with Tamagui. Voice via Silero TTS.
+* **Frontend (mobile & web):** Flutter (mobile) + Next.js (web). Cross-platform UI using Material/Cupertino widgets. Voice via Silero TTS.
 * **Backend API:** Python + FastAPI (Docker). Handles user requests, auth (JWT), and proxies to AI services. Background tasks (chat processing, Detox generation) run via Redis queue.
 * **Edge Functions (Supabase):** Supabase Edge Functions (Deno) for lightweight tasks: cron reminders/notifications, simple DB ops, and webhooks (e.g., from Telegram).
 
@@ -211,30 +217,29 @@ Key milestones: **Detox Feed UI (week 8)**, **Sage Chat UI (week 9)**, **beta re
 ### Hosting
 
 * API & background services run in Docker (Node/Python) on a GPU VM.
-* Mobile builds via Expo EAS.
+* Mobile builds via GitHub Actions.
 * Web app hosted on Vercel.
 
 **Quick tech recap**
 
-* **Mobile/Web:** React Native (Expo) + Next.js (Solito)
-* **UI library:** Tamagui
+* **Mobile/Web:** Flutter (mobile) + Next.js (web)
 * **API:** FastAPI (Python, Docker)
 * **Edge Functions:** Supabase Edge (Deno)
-* **Databases:** Supabase Postgres & Storage; Qdrant
+* **CI/CD:** GitHub Actions, Flutter, Vercel, Supabase migrations
 * **AI models:** OpenAI GPT-4, xAI Grok, Stable Diffusion 1.5, Silero TTS
 * **Search:** Semantic search on Qdrant (“News Déjà Vu”)
 * **Auth:** Supabase Auth (email, JWT)
 * **Payments:** Stripe (Free/Pro/Guru)
-* **CI/CD:** GitHub Actions, Expo EAS, Vercel, Supabase migrations
+* **CI/CD:** GitHub Actions, Flutter, Vercel, Supabase migrations
 * **Analytics:** PostHog dashboards for funnels/retention
 
 ## CI/CD & DevOps
 
-* **GitHub Actions:** On every push/PR, the CI pipeline builds Docker images, runs backend tests, and lints code (ESLint for JS/TS, pytest/flake8 for Python). Merge to `main` triggers deploy.
-* **Mobile builds:** Expo EAS auto-builds iOS & Android on pushes to `main`; new builds upload to TestFlight & Google Play Beta.
+* **GitHub Actions:** On every push/PR, the CI pipeline builds Docker images, runs backend tests, and lints code (ESLint for JS/TS, pytest/flake8 for Python). Merge to `main` triggers production deployment.
+* **Mobile builds:** GitHub Actions performs Flutter builds (`flutter build apk`/`flutter build ios`) for Android and iOS applications.
 * **Web deploy:** Next.js auto-deploys to Vercel from `main` (preview deployments for PRs).
-* **Supabase migrations:** Managed via Supabase CLI; SQL migrations in `supabase/migrations` apply on merge.
-* **Secrets & config:** API keys (OpenAI, Stripe, Supabase, etc.) live in GitHub Secrets & Expo Secrets; each environment (dev/beta/prod) has its own.
+* **Supabase migrations:** Managed via Supabase CLI; SQL migrations in `infra/supabase/migrations` apply on merge.
+* **Secrets & config:** API keys (OpenAI, Stripe, Supabase, etc.) are stored in GitHub Secrets; each environment (dev/beta/prod) has its own configuration.
 * **Infrastructure:** Backend services orchestrated with Docker Compose (FastAPI, Qdrant, Redis, n8n). Each service has its own container & volume. n8n runs in the shared Docker network and connects to Supabase and FastAPI APIs.
 * **Monitoring & alerts:** Sentry for runtime errors. Automated tests (unit, integration) run on schedule to catch regressions early.
 
