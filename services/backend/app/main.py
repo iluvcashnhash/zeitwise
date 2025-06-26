@@ -99,6 +99,25 @@ async def http_exception_handler(request, exc):
         content={"detail": exc.detail},
     )
 
+def main():
+    """
+    Main function to run the FastAPI application using Uvicorn.
+    This is the entry point specified in pyproject.toml.
+    """
+    import uvicorn
+    
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
+
+# This allows the module to be run directly with `python -m app.main`
+if __name__ == "__main__":
+    main()
+
 # Root endpoint - redirect to docs
 @app.get("/", include_in_schema=False)
 async def root():

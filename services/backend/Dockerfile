@@ -11,29 +11,27 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Set working directory
 WORKDIR /app
 
-# Stage 2: Builder for installing dependencies
-FROM base as builder
-
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    curl \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
-ENV POETRY_VERSION=1.8.2 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_NO_INTERACTION=1
+# Copy only the dependency files first to leverage Docker cache
+COPY services/backend/pyproject.toml services/backend/poetry.lock* ./
 
-RUN curl -sSL https://install.python-poetry.org | python3 -
-ENV PATH="${POETRY_HOME}/bin:${PATH}"
+# Stage 2: Install dependencies
+FROM base as builder
 
 # Copy only the dependency files first to leverage Docker cache
-COPY pyproject.toml poetry.lock* ./
+COPY services/backend/pyproject.toml services/backend/poetry.lock* ./
 
-# Install dependencies
-RUN poetry install --no-root --no-ansi --only main
+# Install build dependencies
+RUN pip install --upgrade pip && \
+    pip install build setuptools wheel
+
+# Build and install the package in development mode
+RUN python -m build --wheel --no-isolation
 
 # Stage 3: Runtime image
 FROM base as runtime
@@ -47,12 +45,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN addgroup --system appuser && \
     adduser --system --no-create-home --ingroup appuser appuser
 
-# Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-COPY --from=builder /usr/local/bin/uvicorn /usr/local/bin/uvicorn
+# Copy the built wheel from builder
+COPY --from=builder /app/dist/*.whl /tmp/
+
+# Install the package
+RUN pip install --no-cache-dir /tmp/*.whl
 
 # Copy application code
-COPY . .
+COPY services/backend/ /app/
 
 # Set ownership and permissions
 RUN chown -R appuser:appuser /app

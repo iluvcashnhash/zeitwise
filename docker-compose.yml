@@ -4,28 +4,30 @@ services:
   # Backend API
   api:
     build:
-      context: ../../
+      context: .
       dockerfile: services/backend/Dockerfile
       target: runtime
     volumes:
-      - ../../services/backend:/app
+      - ./services/backend:/app
       - /app/__pycache__
     ports:
       - "8000:8000"
     env_file:
-      - ../../.env
+      - .env
     environment:
       - ENVIRONMENT=development
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      # Use local PostgreSQL or Supabase Cloud based on environment
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-zeitwise}}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-zeitwise}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redispass}@redis:6379/0
       - QDRANT_URL=http://qdrant:6333
     depends_on:
-      - redis
-      - qdrant
-      - postgres
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - zeitwise-network
@@ -88,7 +90,7 @@ services:
       - postgres
     restart: unless-stopped
 
-  # PostgreSQL Database (can be replaced with Supabase Cloud)
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     environment:
@@ -97,7 +99,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-zeitwise}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db/:/docker-entrypoint-initdb.d/
+      - ./infra/init-db/:/docker-entrypoint-initdb.d/
     ports:
       - "5432:5432"
     networks:
