@@ -52,22 +52,17 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Include API router
+# Set up CORS middleware (always add it, but only allow origins if configured)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.BACKEND_CORS_ORIGINS if settings.BACKEND_CORS_ORIGINS else [],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include API router with /api prefix
 app.include_router(api_router, prefix="/api")
-
-# Set up CORS
-if settings.BACKEND_CORS_ORIGINS:
-    # Include all API routes
-    app.include_router(api_router, prefix="/api")
-
-    # Add CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.BACKEND_CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
 # Custom exception handler
 async def http_exception_handler(request, exc):

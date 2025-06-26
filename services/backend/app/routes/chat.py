@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from typing import List, Optional
 import uuid
 from datetime import datetime
@@ -8,7 +9,7 @@ from app.schemas.responses import ChatResponse, ChatMessageResponse
 from app.core.security import get_current_user
 
 router = APIRouter(
-    prefix="/chat",
+    prefix="",  # No prefix here since it's added in routes/__init__.py
     tags=["chat"],
     dependencies=[Depends(get_current_user)],
     responses={404: {"description": "Not found"}},
@@ -50,9 +51,9 @@ async def chat_stream(chat_request: ChatRequest, user: dict = Depends(get_curren
     
     This endpoint streams the chat response in real-time.
     """
-    # TODO: Implement streaming response
+    # TODO: Implement actual streaming with LLM
     # This is a placeholder implementation
-    
+
     async def generate():
         # Simulate streaming response
         response_text = f"Streaming response to: {chat_request.messages[-1].content}"
@@ -62,7 +63,11 @@ async def chat_stream(chat_request: ChatRequest, user: dict = Depends(get_curren
             import asyncio
             await asyncio.sleep(0.1)
         yield "data: [DONE]\n\n"
-    
-    return StreamingResponse(generate(), media_type="text/event-stream")
+
+    return StreamingResponse(
+        generate(), 
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+    )
 
 # Add more chat-related endpoints as needed

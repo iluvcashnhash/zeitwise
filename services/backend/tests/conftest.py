@@ -18,13 +18,39 @@ from app.core.security import get_current_user, security
 @pytest.fixture(scope="module")
 def app():
     """Create a test FastAPI application."""
-    # Create a new FastAPI app for testing
-    test_app = FastAPI()
+    # Create a new FastAPI app for testing with the same settings as main app
+    test_app = FastAPI(
+        title=settings.PROJECT_NAME,
+        description="Test API for ZeitWise application",
+        version="0.1.0",
+        docs_url=None,  # Disable docs for tests
+        redoc_url=None
+    )
     
-    # Include all routers from the main app
-    test_app.include_router(main_app.router)
+    # Include all API routers
+    from app.routes import api_router
+    test_app.include_router(api_router, prefix="/api")
     
-    # Apply any test-specific middleware or overrides
+    # Include the ping endpoint for health checks
+    from app.main import ping, healthz
+    test_app.get("/ping")(ping)
+    test_app.get("/healthz")(healthz)
+    
+    # Apply CORS middleware
+    from fastapi.middleware.cors import CORSMiddleware
+    test_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.BACKEND_CORS_ORIGINS or [],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # Apply exception handlers
+    from fastapi.exceptions import HTTPException
+    from app.main import http_exception_handler
+    test_app.add_exception_handler(HTTPException, http_exception_handler)
+    
     return test_app
 
 # Mock user data for testing
@@ -63,13 +89,22 @@ def override_dependencies(app):
         return {"credentials": "mock-token"}
     
     # Override the dependencies
+    from app.routes import chat, detox, integrations
     app.dependency_overrides[get_current_user] = mock_get_current_user
     app.dependency_overrides[security] = mock_security
+    
+    # Mock chat service if it exists
+    if hasattr(chat, 'chat_service'):
+        chat.chat_service = MagicMock()
     
     yield
     
     # Clean up after tests
     app.dependency_overrides.clear()
+    
+    # Clean up any mocks
+    if hasattr(chat, 'chat_service') and hasattr(chat.chat_service, 'reset_mock'):
+        chat.chat_service.reset_mock()
 
 @pytest.fixture(autouse=True)
 def mock_auth():

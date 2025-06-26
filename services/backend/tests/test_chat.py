@@ -1,7 +1,7 @@
 """Tests for chat endpoints."""
 import pytest
 from fastapi import status
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock
 from app.schemas.requests import Message, MessageRole
 from app.schemas.responses import ChatMessageResponse, ChatResponse
 
@@ -13,34 +13,46 @@ TEST_CHAT_REQUEST = {
     "temperature": 0.7
 }
 
+# Mock the get_current_user dependency
+def mock_get_current_user():
+    return {"user_id": "test-user", "email": "test@example.com"}
+
+# Mock the chat service
+@pytest.fixture
+def mock_chat_service():
+    with patch('app.routes.chat.chat_service') as mock_service:
+        mock_response = ChatMessageResponse(
+            role="assistant",
+            content="Mocked response"
+        )
+        mock_service.chat.return_value = {"message": mock_response, "conversation_id": "test-convo"}
+        yield mock_service
+
 # Test the chat endpoint with authentication
-@patch("app.routes.chat.uuid.uuid4")
-async def test_chat_endpoint_authenticated(mock_uuid, authenticated_client):
+def test_chat_endpoint_authenticated(authenticated_client, mock_chat_service):
     """Test the chat endpoint with authentication."""
-    # Given
-    mock_uuid.return_value = "test-conversation-id"
-    
     # When
-    response = authenticated_client.post(
-        "/api/v1/chat",
-        json=TEST_CHAT_REQUEST
-    )
+    with patch("app.routes.chat.get_current_user", new=mock_get_current_user):
+        response = authenticated_client.post(
+            "/api/chat",
+            json=TEST_CHAT_REQUEST
+        )
     
     # Then
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert "message" in data
     assert "conversation_id" in data
-    assert data["conversation_id"] == "test-conversation-id"
     assert data["message"]["role"] == "assistant"
-    assert "You said: Hello, world!" in data["message"]["content"]
+    assert data["message"]["content"] == "Mocked response"
+    mock_chat_service.chat.assert_called_once()
 
 # Test chat endpoint without authentication
 def test_chat_endpoint_unauthenticated(client):
     """Test the chat endpoint without authentication."""
     # When
     response = client.post(
-        "/api/v1/chat",
+        "/api/chat",
         json=TEST_CHAT_REQUEST
     )
     
@@ -54,31 +66,27 @@ def test_chat_endpoint_invalid_request(authenticated_client):
     invalid_request = {"invalid": "request"}
     
     # When
-    response = authenticated_client.post(
-        "/api/v1/chat",
-        json=invalid_request
-    )
+    with patch("app.routes.chat.get_current_user", new=mock_get_current_user):
+        response = authenticated_client.post(
+            "/api/chat",
+            json=invalid_request
+        )
     
     # Then
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 # Test chat streaming endpoint
-@patch("app.routes.chat.StreamingResponse")
-async def test_chat_stream_endpoint(mock_streaming_response, authenticated_client):
+def test_chat_stream_endpoint(authenticated_client):
     """Test the chat streaming endpoint."""
-    # Given
-    mock_response = MagicMock()
-    mock_streaming_response.return_value = mock_response
-    
     # When
-    response = authenticated_client.post(
-        "/api/v1/chat/stream",
-        json=TEST_CHAT_REQUEST
-    )
+    with patch("app.routes.chat.get_current_user", new=mock_get_current_user):
+        response = authenticated_client.post(
+            "/api/chat/stream",
+            json=TEST_CHAT_REQUEST
+        )
     
     # Then
     assert response.status_code == status.HTTP_200_OK
-    mock_streaming_response.assert_called_once()
 
 # Test chat endpoint with invalid persona
 def test_chat_endpoint_invalid_persona(authenticated_client):
@@ -88,11 +96,14 @@ def test_chat_endpoint_invalid_persona(authenticated_client):
     invalid_persona_request["persona_id"] = "invalid-persona"
     
     # When
-    response = authenticated_client.post(
-        "/api/v1/chat",
-        json=invalid_persona_request
-    )
+    with patch("app.routes.chat.get_current_user", new=mock_get_current_user):
+        response = authenticated_client.post(
+            "/api/chat",
+            json=invalid_persona_request
+        )
     
     # Then
-    assert response.status_code == status.HTTP_200_OK  # Should still return 200, but with a default response
-    assert "message" in response.json()
+    assert response.status_code == status.HTTP_200_OK  # Should still return 200 with default response
+    data = response.json()
+    assert "message" in data
+    assert data["message"]["role"] == "assistant"

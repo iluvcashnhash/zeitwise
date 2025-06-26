@@ -29,17 +29,15 @@ def test_healthz_endpoint(client):
     assert data == {"status": "ok"}
 
 # Test database health check failure
-@patch("app.main.HealthStatus")
-def test_database_health_check_failure(mock_health_status, client):
+def test_database_health_check_failure(client):
     """Test database health check failure."""
-    # Given
-    from app.schemas.responses import HealthStatus
-    mock_health_status.ERROR = "error"
-    
-    # Mock database check to fail
-    with patch("app.main.HealthCheckResponse") as mock_response:
-        mock_response.return_value.services = {"database": "error"}
-        mock_response.return_value.status = "error"
+    # Mock the database health check to fail
+    with patch("app.main.check_database_health") as mock_db_check:
+        # Configure the mock to return an error status
+        mock_db_check.return_value = {
+            "status": "error",
+            "details": "Connection failed"
+        }
         
         # When
         response = client.get("/ping")
