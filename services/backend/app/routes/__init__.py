@@ -10,6 +10,8 @@ api_router = APIRouter()
 
 try:
     # Import and include all routers
+    logger.info("Importing auth router...")
+    from . import auth
     logger.info("Importing chat router...")
     from . import chat
     logger.info("Importing detox router...")
@@ -18,12 +20,14 @@ try:
     from . import integrations
     
     # Include all routers with their prefixes
+    logger.info("Including auth router at /auth")
+    api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
     logger.info("Including chat router at /chat")
-    api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
+    api_router.include_router(chat.router, prefix="/chat", tags=["Chat"])
     logger.info("Including detox router at /detox")
-    api_router.include_router(detox.router, prefix="/detox", tags=["detox"])
+    api_router.include_router(detox.router, prefix="/detox", tags=["Detox"])
     logger.info("Including integrations router at /")
-    api_router.include_router(integrations.router, prefix="", tags=["integrations"])
+    api_router.include_router(integrations.router, prefix="", tags=["Integrations"])
     
     # Log all registered routes
     for route in api_router.routes:

@@ -33,8 +33,14 @@ class Settings(BaseSettings):
     QDRANT_URL: str = "http://qdrant:6333"
     
     # Supabase settings
-    SUPABASE_URL: str = "http://supabase:54321"
-    SUPABASE_KEY: str = "your-supabase-key"
+    SUPABASE_URL: str = "http://localhost:54321"  # Local Supabase URL
+    SUPABASE_KEY: str = "your-anon-key"  # Supabase anon/public key
+    SUPABASE_JWT_SECRET: str = "your-jwt-secret"  # Used to verify JWT tokens
+    SUPABASE_SERVICE_ROLE_KEY: str = "your-service-role-key"  # For admin operations
+    SUPABASE_AUTH_COOKIE_NAME: str = "sb-access-token"
+    SUPABASE_REFRESH_COOKIE_NAME: str = "sb-refresh-token"
+    SUPABASE_TOKEN_EXPIRY: int = 3600  # 1 hour
+    SUPABASE_REFRESH_TOKEN_EXPIRY: int = 60 * 60 * 24 * 7  # 7 days
     
     # LLM settings
     OPENAI_API_KEY: str = ""
