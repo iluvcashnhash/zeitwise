@@ -1,8 +1,135 @@
 # ZeitWise
 
-**ZeitWise** is a multimodal AI-powered application that turns endless doomscrolling into **actionable insights and humor**. In an era of information overload, it lets users hold a **two-way conversation** with virtual “sages” (philosophers, thinkers, and witty personalities) for a fresh perspective on the news. The app combines text, voice (TTS), and images: news headlines come with historical parallels and witty commentary, while chats with personas can spawn meme images to amplify the effect. In short, ZeitWise aims to tame the noise—finding echoes in history, extracting wisdom, and even sparking a smile—all in a single app.
+**ZeitWise** is a multimodal AI-powered application that turns endless doomscrolling into **actionable insights and humor**. In an era of information overload, it lets users hold a **two-way conversation** with virtual "sages" (philosophers, thinkers, and witty personalities) for a fresh perspective on the news. The app combines text, voice (TTS), and images: news headlines come with historical parallels and witty commentary, while chats with personas can spawn meme images to amplify the effect. In short, ZeitWise aims to tame the noise—finding echoes in history, extracting wisdom, and even sparking a smile—all in a single app.
 
-**MVP focus:** the “wow factor” of text chat + meme image + voice. Users can chat one-on-one with several philosophical avatars (e.g., Socrates, Diogenes, or a sarcastic Marx) via text and hear their spoken replies (Silero TTS). Separately, the **“Doomscroll Detox” feed** (also called the “Historical Prism”) is a carousel of current news in which every headline is paired with (1) a historical parallel, (2) an AI analysis, and (3) a humorous meme or quip. Example: “This crisis echoes the Tulip Mania of 1637.” The result is a feed that turns panic into perspective—sometimes even laughter—presented in a visually rich format that entices users to share.
+## Project Structure
+
+```
+zeitwise/
+├── apps/                  # Frontend applications (Next.js, React Native)
+├── docs/                  # Documentation
+├── infra/                 # Infrastructure as Code (Docker, Kubernetes)
+│   └── supabase/          # Supabase migrations and configuration
+├── packages/              # Shared packages and libraries
+├── scripts/               # Utility scripts
+│   └── generate-types.ts   # Database type generation
+├── services/              # Backend services
+│   └── backend/           # FastAPI backend
+│       ├── app/           # Application code
+│       ├── tests/         # Test suite
+│       └── pyproject.toml # Python dependencies
+├── types/                 # Generated TypeScript types
+├── .env.example          # Environment variables example
+├── docker-compose.yml     # Local development stack
+└── README.md             # This file
+```
+
+## Quick Start
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Node.js 18+ and npm
+- Python 3.10+
+- PostgreSQL 15+
+
+### Local Development
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/zeitwise.git
+   cd zeitwise
+   ```
+
+2. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. **Start the development stack**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Initialize the database**
+   ```bash
+   # Apply migrations
+   docker-compose exec api alembic upgrade head
+   
+   # Generate TypeScript types
+   npm run generate:types
+   ```
+
+5. **Start the development servers**
+   ```bash
+   # Backend (FastAPI)
+   cd services/backend
+   poetry install
+   poetry run uvicorn app.main:app --reload
+   
+   # Frontend (Next.js)
+   cd ../../apps/web
+   npm install
+   npm run dev
+   ```
+
+## Development Workflow
+
+### Database Migrations
+
+1. Create a new migration:
+   ```bash
+   docker-compose exec api alembic revision --autogenerate -m "description"
+   ```
+
+2. Apply migrations:
+   ```bash
+   docker-compose exec api alembic upgrade head
+   ```
+
+3. Generate TypeScript types after schema changes:
+   ```bash
+   npm run generate:types
+   ```
+
+### Testing
+
+```bash
+# Run backend tests
+cd services/backend
+poetry run pytest
+
+# Run frontend tests
+cd ../../apps/web
+npm test
+```
+
+## API Documentation
+
+Once the backend is running, API documentation is available at:
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## Core Features
+
+- **Sage Chat**: Interactive chat with AI personas
+- **Doomscroll Detox**: Historical context for news articles
+- **Meme Generation**: AI-generated memes based on content
+- **User Authentication**: JWT-based auth with Supabase
+- **Real-time Updates**: WebSocket support for live interactions
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Core Goals
 

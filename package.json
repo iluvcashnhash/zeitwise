@@ -11,15 +11,23 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "generate:types": "tsx scripts/generate-types-simple.ts",
+    "db:types": "npm run generate:types"
   },
   "devDependencies": {
-    "turbo": "^1.12.7",
-    "typescript": "^5.3.3",
+    "@supabase/supabase-js": "^2.50.2",
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.15.4",
     "eslint": "^8.56.0",
-    "prettier": "^3.1.1",
     "husky": "^9.0.5",
-    "lint-staged": "^15.2.0"
+    "lint-staged": "^15.2.0",
+    "pg": "^8.16.2",
+    "prettier": "^3.1.1",
+    "supabase": "^2.15.7",
+    "tsx": "^4.7.0",
+    "turbo": "^2.1.5",
+    "typescript": "^5.8.3"
   },
   "packageManager": "yarn@1.22.19",
   "engines": {
