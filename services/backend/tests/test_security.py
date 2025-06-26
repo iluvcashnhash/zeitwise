@@ -192,3 +192,51 @@ async def test_get_current_user_invalid_token():
         with pytest.raises(HTTPException) as exc_info:
             await security.get_current_user(mock_credentials)
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+@pytest.mark.asyncio
+async def test_decode_jwt_invalid_signature():
+    """Test JWT decoding with invalid signature."""
+    with patch('jose.jwt.decode') as mock_decode:
+        mock_decode.side_effect = jwt.JWTError("Invalid signature")
+        with pytest.raises(HTTPException) as exc_info:
+            await security.decode_jwt("invalid.token.here")
+        
+        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "Invalid token: Error decoding token headers" in str(exc_info.value.detail)
+
+@pytest.mark.asyncio
+async def test_decode_jwt_expired():
+    """Test JWT decoding with expired token."""
+    with patch('jose.jwt.decode') as mock_decode:
+        mock_decode.side_effect = jwt.ExpiredSignatureError("Token expired")
+        with pytest.raises(HTTPException) as exc_info:
+            await security.decode_jwt("expired.token.here")
+        
+        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "Invalid token: Error decoding token headers" in str(exc_info.value.detail)
+
+@pytest.mark.asyncio
+async def test_get_public_key_error_handling():
+    """Test error handling when getting public key fails."""
+    # First call to populate cache with empty keys
+    with patch('app.core.security.jwks_cache', {}):
+        with patch('app.core.security.get_jwks') as mock_get_jwks:
+            mock_get_jwks.return_value = {"keys": []}  # No keys in JWKS
+            with pytest.raises(HTTPException) as exc_info:
+                await security.get_public_key("nonexistent_kid")
+            
+            assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+            assert "Invalid token: unknown key ID" in str(exc_info.value.detail)
+
+@pytest.mark.asyncio
+async def test_get_current_user_malformed_token():
+    """Test getting current user with malformed token."""
+    with patch('app.core.security.decode_jwt') as mock_decode:
+        mock_decode.side_effect = Exception("Malformed token")
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="malformed.token.here")
+        
+        with pytest.raises(HTTPException) as exc_info:
+            await security.get_current_user(credentials)
+        
+        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "Could not validate credentials" in str(exc_info.value.detail)

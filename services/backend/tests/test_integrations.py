@@ -57,8 +57,8 @@ async def test_create_integration_missing_config(authenticated_client, mock_auth
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     data = response.json()
     assert "detail" in data
-    assert "config" in data["detail"][0]["loc"]
-    assert "field required" in data["detail"][0]["msg"].lower()
+    # The API returns a simple error message for missing config
+    assert data["detail"] == "Config is required for create action"
 
 @pytest.fixture
 def test_integration_data():
@@ -107,6 +107,7 @@ async def test_update_integration(authenticated_client, mock_auth, test_integrat
                 "action": "update",
                 "integration_id": test_integration_id,
                 "config": {
+                    "type": "telegram",
                     "enabled": True,
                     "settings": {"api_token": "new-token"}
                 }
