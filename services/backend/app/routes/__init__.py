@@ -18,10 +18,14 @@ try:
     from . import detox
     logger.info("Importing integrations router...")
     from . import integrations
+    logger.info("Importing verification router...")
+    from . import verification
     
     # Include all routers with their prefixes
     logger.info("Including auth router at /auth")
     api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+    logger.info("Including verification router at /verification")
+    api_router.include_router(verification.router, prefix="/verification", tags=["Verification"])
     logger.info("Including chat router at /chat")
     api_router.include_router(chat.router, prefix="/chat", tags=["Chat"])
     logger.info("Including detox router at /detox")
@@ -38,4 +42,4 @@ except Exception as e:
     raise
 
 # Make all routers available for direct import
-__all__ = ["api_router", "chat", "detox", "integrations"]
+__all__ = ["api_router", "auth", "verification", "chat", "detox", "integrations"]
