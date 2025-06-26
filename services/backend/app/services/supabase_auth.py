@@ -101,20 +101,58 @@ class SupabaseAuthService:
     async def sign_in_with_email_password(
         self, 
         email: str, 
-        password: str
+        password: str,
     ) -> Dict[str, Any]:
-        """Sign in with email and password."""
+        """
+        Sign in a user with email and password.
+        
+        Args:
+            email: User's email address
+            password: User's password
+            
+        Returns:
+            Dict containing user and session information
+            
+        Raises:
+            HTTPException: If authentication fails
+        """
         try:
             result = self.supabase.auth.sign_in_with_password({
                 "email": email,
-                "password": password
+                "password": password,
             })
-            return result.dict()
+            
+            if not result or not hasattr(result, 'user') or not result.user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect email or password",
+                )
+            
+            # Add provider info to user metadata
+            user_data = result.user.model_dump()
+            user_metadata = user_data.get("user_metadata", {})
+            user_metadata["provider"] = "email"
+            user_metadata["providers"] = list(set(user_metadata.get("providers", []) + ["email"]))
+            
+            # Update user metadata if needed
+            if "provider" not in user_data.get("user_metadata", {}) or "providers" not in user_data.get("user_metadata", {}):
+                await self.update_user(
+                    user_data["id"],
+                    user_metadata=user_metadata
+                )
+            
+            return {
+                "user": user_data,
+                "session": result.session.model_dump() if hasattr(result, 'session') else None,
+                "provider": "email",
+            }
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Error signing in with email/password: {str(e)}")
+            logger.error(f"Error signing in with email/password: {e}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password"
+                detail="Incorrect email or password",
             )
     
     async def sign_up_with_email_password(
@@ -141,29 +179,91 @@ class SupabaseAuthService:
             )
     
     async def sign_in_with_oauth(
-        self, 
-        provider: str, 
-        code: str,
-        redirect_uri: str
+        self,
+        provider: str,
+        code: str = None,
+        redirect_uri: str = None,
+        auth_code: str = None,
     ) -> Dict[str, Any]:
-        """Sign in with OAuth provider."""
+        """
+        Sign in or get OAuth URL for a provider.
+        
+        Args:
+            provider: OAuth provider (google, github, etc.)
+            code: Authorization code from OAuth provider (for token exchange)
+            redirect_uri: Redirect URI for OAuth flow
+            auth_code: Authentication code for token exchange (alternative to code)
+            
+        Returns:
+            Dict containing OAuth URL or user session
+            
+        Raises:
+            HTTPException: If OAuth flow fails
+        """
         try:
+            # Normalize provider name
+            provider = provider.lower()
+            
+            # If we have a code, exchange it for a session
+            if code or auth_code:
+                result = self.supabase.auth.exchange_code_for_session(auth_code or code)
+                
+                if not result or not hasattr(result, 'user') or not result.user:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Failed to authenticate with {provider}",
+                    )
+                
+                # Add provider info to user metadata
+                user_data = result.user.model_dump()
+                user_metadata = user_data.get("user_metadata", {})
+                user_metadata["provider"] = provider
+                
+                # Track all providers for this user
+                providers = set(user_metadata.get("providers", []))
+                providers.add(provider)
+                user_metadata["providers"] = list(providers)
+                
+                # Update user metadata if needed
+                if user_metadata != user_data.get("user_metadata", {}):
+                    await self.update_user(
+                        user_data["id"],
+                        user_metadata=user_metadata
+                    )
+                
+                return {
+                    "user": user_data,
+                    "session": result.session.model_dump() if hasattr(result, 'session') else None,
+                    "provider": provider,
+                }
+            
+            # Otherwise, return the OAuth URL
             result = self.supabase.auth.sign_in_with_oauth({
                 "provider": provider,
                 "options": {
-                    "redirect_to": redirect_uri,
+                    "redirect_to": redirect_uri or f"{settings.SUPABASE_URL}/auth/v1/callback",
                     "query_params": {
-                        "access_type": 'offline',
-                        "prompt": 'consent',
-                    }
-                }
+                        "access_type": "offline",
+                        "prompt": "consent",
+                    },
+                },
             })
-            return result.dict()
+            
+            if not result or not hasattr(result, 'url'):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Failed to initiate {provider} OAuth flow",
+                )
+                
+            return {"url": result.url}
+            
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"Error signing in with {provider}: {str(e)}")
+            logger.error(f"Error with {provider} OAuth: {e}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Could not authenticate with {provider}"
+                detail=f"Failed to authenticate with {provider}: {str(e)}",
             )
     
     async def sign_out(self, access_token: str) -> bool:
